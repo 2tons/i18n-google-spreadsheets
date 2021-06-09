@@ -1,17 +1,24 @@
 const Promise = require("bluebird");
 const fs = require("fs-extra");
+const R = require("ramda");
 
 const formatRow = require("./formatter");
 const { getConfig, getDocument } = require("./config-helper");
 
-const rowFormatter = rows =>
-  JSON.stringify(
-    rows.reduce((jsonObject, { key, data }) => {
-      const newRow = {};
-      newRow[key] = data;
-      return Object.assign(jsonObject, newRow);
-    }, {})
-  );
+const buildObj = (acc, [key, val]) => {
+  return R.assocPath(R.split(".", key), val, acc);
+};
+
+const unflattenObj = R.pipe(R.toPairs, R.reduce(buildObj, {}));
+
+const rowFormatter = rows => {
+  const dictionary = rows.reduce((jsonObject, { key, data }) => {
+    const newRow = {};
+    newRow[key] = data;
+    return Object.assign(jsonObject, newRow);
+  }, {});
+  return JSON.stringify(unflattenObj(dictionary));
+};
 
 /**
  * Gets all the rows from the sheet, filters out undefined rows
