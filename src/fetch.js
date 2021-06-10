@@ -17,7 +17,7 @@ const rowFormatter = rows => {
     newRow[key] = data;
     return Object.assign(jsonObject, newRow);
   }, {});
-  return JSON.stringify(unflattenObj(dictionary));
+  return JSON.stringify(unflattenObj(dictionary), null, 2);
 };
 
 /**
