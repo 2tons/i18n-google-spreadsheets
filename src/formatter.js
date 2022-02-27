@@ -25,7 +25,10 @@ const formatRow = ({ row, categories, languages, delimiter }) => {
 
   return {
     [rowKey]: languages.reduce((acc, language) => {
-      acc[language] = row[language];
+      // Add key only if it exists a translation
+      if (row[language]) {
+        acc[language] = row[language];
+      }
       return acc;
     }, {})
   };

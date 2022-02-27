@@ -77,10 +77,10 @@ const getSheets = async ({ worksheets, categories, languages, delimiter }) => {
   return sheets;
 };
 
-const buildTranslations = async (sheets, { output, languages, categories, delimiter }) => {
+const buildTranslations = async (sheets, { output, languages }) => {
   await fs.remove(output);
   await fs.ensureDir(output);
-  await generateTranslations(sheets, { output, languages, categories, delimiter });
+  await generateTranslations(sheets, { output, languages });
 
   process.stdout.write(` ✓ \n`);
 };
@@ -105,7 +105,7 @@ const fetch = async () => {
     languages,
     delimiter
   });
-  await buildTranslations(sheets, { output, languages, categories, delimiter });
+  await buildTranslations(sheets, { output, languages });
   console.log("Successfully generated i18n files!");
 };
 
