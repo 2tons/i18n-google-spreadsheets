@@ -32,11 +32,11 @@ Configuration requires a credentials JSON file that can be obtained through Goog
 
 1. Go to the [Google Developers Console](https://console.developers.google.com/project)
 2. Select your project or create a new one (and then select it)
-3. Enable the Drive API for your project
+3. Enable the GoogleSheet API for your project
 
 - In the sidebar on the left, expand **APIs & auth** > **APIs**
-- Search for "drive"
-- Click on "Drive API"
+- Search for "sheet"
+- Click on "Google Sheets API"
 - click the blue "Enable API" button
 
 4. Create a service account for your project
@@ -50,6 +50,10 @@ Configuration requires a credentials JSON file that can be obtained through Goog
 - note your service account's email address (also available in the JSON key file)
 
 5. Share the doc (or docs) with your service account using the email noted above
+
+- Go to the Google Sheet you wish to share
+- Click on "share" button
+- Add your service account's email address (also available in the JSON key file)
 
 ## Running the Translations
 
