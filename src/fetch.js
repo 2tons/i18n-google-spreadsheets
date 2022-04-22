@@ -77,10 +77,13 @@ const getSheets = async ({ worksheets, categories, languages, delimiter }) => {
   return sheets;
 };
 
-const buildTranslations = async (sheets, { output, languages }) => {
-  await fs.remove(output);
-  await fs.ensureDir(output);
-  await generateTranslations(sheets, { output, languages });
+const buildTranslations = async (sheets, { staticOutput, dynamicOutput, staticLanguages, dynamicLanguages }) => {
+  await fs.remove(staticOutput);
+  await fs.remove(dynamicOutput);
+  await fs.ensureDir(staticOutput);
+  await fs.ensureDir(dynamicOutput);
+  await generateTranslations(sheets, { output: staticOutput, languages: staticLanguages });
+  await generateTranslations(sheets, { output: dynamicOutput, languages: dynamicLanguages });
 
   process.stdout.write(` ✓ \n`);
 };
@@ -94,7 +97,15 @@ const fetch = async () => {
   }
 
   const delimiter = config.delimiter || ".";
-  const { output, categories, languages, sheetId, credentialsPath } = config;
+  const {
+    staticOutput,
+    dynamicOutput,
+    categories,
+    staticLanguages,
+    dynamicLanguages,
+    sheetId,
+    credentialsPath
+  } = config;
 
   const doc = await getDocument({ sheetId, credentialsPath });
   await doc.loadInfo();
@@ -102,10 +113,15 @@ const fetch = async () => {
   const sheets = await getSheets({
     worksheets,
     categories,
-    languages,
+    languages: [...staticLanguages, ...dynamicLanguages],
     delimiter
   });
-  await buildTranslations(sheets, { output, languages });
+  await buildTranslations(sheets, {
+    staticOutput,
+    dynamicOutput,
+    staticLanguages,
+    dynamicLanguages
+  });
   console.log("Successfully generated i18n files!");
 };
 
