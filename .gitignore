@@ -2,4 +2,5 @@ node_modules
 .DS_Store
 credentials.json
 i18n-google-spreadsheets.config.js
-src/locales-gsheet
+src/locales
+public/locales
