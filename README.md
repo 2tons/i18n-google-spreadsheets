@@ -57,9 +57,9 @@ Configuration requires a credentials JSON file that can be obtained through Goog
 
 ## Running the Translations
 
-1. `npm install -D @emirotin/i18n-google-spreadsheets`
+1. `npm install`
 2. Create a `i18n-google-spreadsheets.config.js` file in the folder you wish to run the translations on.
-3. `npx i18n-google-spreadsheets fetch`
+3. Run `node src/index.js fetch`
 
 ## i18n Configuration
 
@@ -69,14 +69,19 @@ var path = require("path");
 module.exports = {
   categories: ["category", "subcategory", "subcategory2"],
   credentialsPath: path.join(process.cwd(), "credentials.json"),
-  languages: ["en_CA", "fr_CA", "es_ES"],
-  sheetId: "YOUR_SHEET_ID"
+  staticLanguages: ["en", "fr"],
+  dynamicLanguages: ["pt", "es", "th", "it", "pl"],
+  sheetId: "YOUR_SHEET_ID",
+  staticOutput: "./src/locales",
+  dynamicOutput: "./public/locales"
 };
 ```
 
 - `categories` - (required) The columns that defined the key names, for example, with the table above the first row will correspond to the `onboarding.landing.intro` key in the i18n file,
 - `delimiter` - (optional, default - '.') The delimiter used to join different categories to build the i18n key,
 - `credentialsPath` - (required) Absolute path to your crendentials JSON file,
-- `languages`: (required) The column in the sheet defining the i18n locales, each language corresponds to a single output file,
+- `staticLanguages`: (required) The column in the sheet defining the i18n locales, each language corresponds to a single output file in the staticOutput directory,
+- `dynamicLanguages`: (required) The column in the sheet defining the i18n locales, each language corresponds to a single output file in the dynamicOutput directory,
 - `sheetId` - (required) The ID of the Google Spreadsheet (can be found as part of its URL),
-- `output` - (required) An absolute path to the folder where locale files are saved.
+- `staticOutput` - (required) An absolute path to the folder where static locale files are saved. Static locale files are embedded in the js library
+- `dynamicOutput` - (required) An absolute path to the folder where dynamic locale files are saved. Dynamic locale files are downloaded when the app starts
