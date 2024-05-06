@@ -9,25 +9,25 @@
  */
 
 const formatRow = ({ row, categories, languages, delimiter }) => {
-  if (!row[categories[0]] || row[categories[0]] === "#") {
+  if (!row.get(categories[0]) || row.get(categories[0]) === "#") {
     return null;
   }
 
   const rowKey = categories
     .reduce((acc, category) => {
-      if (!row[category]) {
+      if (!row.get(category)) {
         return acc;
       }
 
-      return [...acc, row[category]];
+      return [...acc, row.get(category)];
     }, [])
     .join(delimiter);
 
   return {
     [rowKey]: languages.reduce((acc, language) => {
       // Add key only if it exists a translation
-      if (row[language]) {
-        acc[language] = row[language];
+      if (row.get(language)) {
+        acc[language] = row.get(language);
       }
       return acc;
     }, {})

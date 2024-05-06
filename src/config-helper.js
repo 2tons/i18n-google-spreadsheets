@@ -1,5 +1,6 @@
 const { GoogleSpreadsheet } = require("google-spreadsheet");
 const path = require("path");
+const { JWT } = require("google-auth-library");
 
 const getConfig = () => {
   try {
@@ -10,8 +11,13 @@ const getConfig = () => {
 };
 
 const getDocument = async ({ sheetId, credentialsPath }) => {
-  const doc = new GoogleSpreadsheet(sheetId);
-  await doc.useServiceAccountAuth(require(credentialsPath));
+  const cred = require(credentialsPath);
+  const serviceAccountAuth = new JWT({
+    email: cred.client_email,
+    key: cred.private_key,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"]
+  });
+  const doc = new GoogleSpreadsheet(sheetId, serviceAccountAuth);
   return doc;
 };
 
