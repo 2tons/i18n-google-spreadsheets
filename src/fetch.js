@@ -57,13 +57,12 @@ const getSheetTranslations = ({ title, rows, output, languages }) =>
 
     return fs.writeFile(writePath, rowFormatter(mappedRows), "utf8");
   });
-
 const generateTranslations = (sheets, { output, languages }) => {
   process.stdout.write("Generating i18n files");
   return Promise.map(sheets, ({ title, rows }) => getSheetTranslations({ title, rows, output, languages }));
 };
 
-const getSheets = async ({ worksheets, categories, languages, delimiter }) => {
+const getSheets = async ({ worksheets, categories, excludedTabs, languages, delimiter }) => {
   process.stdout.write("Fetching Rows from Google Sheets");
   const sheets = await Promise.map(worksheets, worksheet =>
     getSheetRows({
@@ -74,7 +73,7 @@ const getSheets = async ({ worksheets, categories, languages, delimiter }) => {
     })
   );
   process.stdout.write(` ✓ \n`);
-  return sheets;
+  return sheets.filter(sheet => !excludedTabs.includes(sheet.title.toLowerCase()));
 };
 
 const buildTranslations = async (sheets, { staticOutput, dynamicOutput, staticLanguages, dynamicLanguages }) => {
@@ -101,6 +100,7 @@ const fetch = async () => {
     staticOutput,
     dynamicOutput,
     categories,
+    excludedTabs = [],
     staticLanguages,
     dynamicLanguages,
     sheetId,
@@ -110,9 +110,11 @@ const fetch = async () => {
   const doc = await getDocument({ sheetId, credentialsPath });
   await doc.loadInfo();
   const worksheets = doc.sheetsByIndex;
+  const lowerCaseExcludedTabs = excludedTabs.map(excludedTab => excludedTab.toLowerCase());
   const sheets = await getSheets({
     worksheets,
     categories,
+    excludedTabs: lowerCaseExcludedTabs,
     languages: [...staticLanguages, ...dynamicLanguages],
     delimiter
   });
