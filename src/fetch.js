@@ -16,9 +16,13 @@ const unflattenObj = R.pipe(R.toPairs, R.reduce(buildObj, {}));
 
 const rowFormatter = (rows) => {
   const dictionary = rows.reduce((jsonObject, { key, data }) => {
-    const newRow = {};
-    newRow[key] = data;
-    return Object.assign(jsonObject, newRow);
+    if (data) {
+      const newRow = {};
+      newRow[key] = data;
+      return Object.assign(jsonObject, newRow);
+    } else {
+      return jsonObject;
+    }
   }, {});
   return JSON.stringify(unflattenObj(dictionary), null, 2);
 };
@@ -55,7 +59,11 @@ const getSheetTranslations = ({ title, rows, output, languages }) =>
     const writePath = `${output}/${language}/${title}.json`;
     const mappedRows = prepareMapData(rows, language);
 
-    return fs.writeFile(writePath, rowFormatter(mappedRows), "utf8");
+    const formattedRow = rowFormatter(mappedRows);
+    if (formattedRow !== "{}") {
+      return fs.writeFile(writePath, rowFormatter(mappedRows), "utf8");
+    }
+    return;
   });
 const generateTranslations = (sheets, { output, languages }) => {
   process.stdout.write("Generating i18n files");
