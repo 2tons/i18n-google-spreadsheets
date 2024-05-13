@@ -9,7 +9,10 @@
  */
 
 const formatRow = ({ row, categories, languages, delimiter }) => {
-  if (!row.get(categories[0]) || row.get(categories[0]) === "#") {
+  // Ignore row if :
+  // - categories[0] column is empty or equals to #
+  // - "ignore" column contains "yes"
+  if (!row.get(categories[0]) || row.get(categories[0]) === "#" || row.get("ignore") === "yes") {
     return null;
   }
 
@@ -30,7 +33,7 @@ const formatRow = ({ row, categories, languages, delimiter }) => {
         acc[language] = row.get(language);
       }
       return acc;
-    }, {})
+    }, {}),
   };
 };
 
