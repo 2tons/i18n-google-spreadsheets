@@ -7,12 +7,14 @@ const { getConfig, getDocument } = require("./config-helper");
 
 const buildObj = (acc, [key, val]) => {
   // return R.assocPath(R.split(".", key), val, acc);
-  // Do not split key if it contains a dot character is followed by a space or if it is at the end of the line like :
+  // Do not split key if it contains a dot character followed by a space
+  // or if there is a dot at the end of the line like :
   // 'Invalid Data Error. Workshop does not exist.'
   return R.assocPath(R.split(/\.(?! |$)/, key), val, acc);
 };
-
-const unflattenObj = R.pipe(R.toPairs, R.reduce(buildObj, {}));
+// Sort the keys in ascendent order
+const sortByFirstItem = R.sortBy(R.prop(0));
+const unflattenObj = R.pipe(R.toPairs, sortByFirstItem, R.reduce(buildObj, {}));
 
 const rowFormatter = (rows) => {
   const dictionary = rows.reduce((jsonObject, { key, data }) => {
