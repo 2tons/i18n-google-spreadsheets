@@ -4,7 +4,7 @@ const { JWT } = require("google-auth-library");
 
 const getConfig = () => {
   try {
-    return require(path.join(process.cwd(), "i18n-google-spreadsheets.config.js"));
+    return require(path.join(process.cwd(), "i18n-google-spreadsheets.config.cjs"));
   } catch (err) {
     return null;
   }
