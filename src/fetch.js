@@ -86,15 +86,34 @@ const getSheets = async ({ worksheets, categories, tabs, languages, delimiter })
   return sheets.filter((sheet) => tabs.includes(sheet.title.toLowerCase()));
 };
 
-const buildTranslations = async (sheets, { staticOutput, dynamicOutput, staticLanguages, dynamicLanguages }) => {
-  await fs.remove(staticOutput);
-  await fs.remove(dynamicOutput);
+const buildTranslations = async (
+  sheets,
+  { staticOutput, dynamicOutput, staticLanguages, dynamicLanguages, clean = true }
+) => {
+  if (clean) {
+    await fs.remove(staticOutput);
+    await fs.remove(dynamicOutput);
+  }
   await fs.ensureDir(staticOutput);
   await fs.ensureDir(dynamicOutput);
   await generateTranslations(sheets, { output: staticOutput, languages: staticLanguages });
   await generateTranslations(sheets, { output: dynamicOutput, languages: dynamicLanguages });
 
   process.stdout.write(` ✓ \n`);
+};
+// Parses additional sheet names passed either after --fetch/-f or as positional args
+const parseRequestedSheetsFromArgv = () => {
+  const argv = process.argv.slice(2);
+  if (argv.length === 0) return [];
+
+  const fetchIndex = argv.findIndex((arg) => arg === "--fetch" || arg === "-f");
+  if (fetchIndex !== -1) {
+    // Take all non-option args after --fetch/-f
+    return argv.slice(fetchIndex + 1).filter((arg) => !arg.startsWith("-"));
+  }
+
+  // If no explicit --fetch was provided, treat non-option args as sheet names
+  return argv.filter((arg) => !arg.startsWith("-"));
 };
 
 const fetch = async () => {
@@ -117,22 +136,47 @@ const fetch = async () => {
     credentialsPath,
   } = config;
 
+  const requestedSheets = parseRequestedSheetsFromArgv().map((s) => s.toLowerCase());
+
   const doc = await getDocument({ sheetId, credentialsPath });
   await doc.loadInfo();
   const worksheets = doc.sheetsByIndex;
-  const lowerCaseTabs = tabs.map((tab) => tab.toLowerCase());
-  const sheets = await getSheets({
-    worksheets,
-    categories,
-    tabs: lowerCaseTabs,
-    languages: [...staticLanguages, ...dynamicLanguages],
-    delimiter,
-  });
+
+  let sheets;
+  if (requestedSheets.length > 0) {
+    // Only fetch explicitly requested sheets
+    const selectedWorksheets = worksheets.filter((ws) => requestedSheets.includes(ws.title.toLowerCase()));
+    if (selectedWorksheets.length === 0) {
+      console.warn("No matching sheets found for:", requestedSheets.join(", "));
+      return;
+    }
+    process.stdout.write("Fetching Rows from selected sheets");
+    sheets = await Promise.map(selectedWorksheets, (worksheet) =>
+      getSheetRows({
+        worksheet,
+        categories,
+        languages: [...staticLanguages, ...dynamicLanguages],
+        delimiter,
+      })
+    );
+    process.stdout.write(` ✓ \n`);
+  } else {
+    const lowerCaseTabs = tabs.map((tab) => tab.toLowerCase());
+    sheets = await getSheets({
+      worksheets,
+      categories,
+      tabs: lowerCaseTabs,
+      languages: [...staticLanguages, ...dynamicLanguages],
+      delimiter,
+    });
+  }
+
   await buildTranslations(sheets, {
     staticOutput,
     dynamicOutput,
     staticLanguages,
     dynamicLanguages,
+    clean: requestedSheets.length === 0,
   });
   console.log("Successfully generated i18n files!");
 };
