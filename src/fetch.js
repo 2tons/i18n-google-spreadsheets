@@ -43,6 +43,24 @@ const getSheetRows = async ({ worksheet, categories, languages, delimiter }) => 
   };
 };
 
+// Retry wrapper with exponential backoff for Google API 429s
+const getSheetRowsWithRetry = async (args, { retries = 5, baseDelayMs = 500, maxDelayMs = 8000 } = {}) => {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await getSheetRows(args);
+    } catch (err) {
+      const status = err && (err.status || (err.response && err.response.status));
+      const isRateLimit =
+        status === 429 || (err && err.code === 429) || (err && err.message && err.message.includes("429"));
+      if (!isRateLimit || attempt === retries) {
+        throw err;
+      }
+      const delay = Math.min(baseDelayMs * Math.pow(2, attempt) + Math.floor(Math.random() * 250), maxDelayMs);
+      await Promise.delay(delay);
+    }
+  }
+};
+
 /**
  * Prepares data to be used with the mapper
  */
@@ -72,18 +90,34 @@ const generateTranslations = (sheets, { output, languages }) => {
   return Promise.map(sheets, ({ title, rows }) => getSheetTranslations({ title, rows, output, languages }));
 };
 
-const getSheets = async ({ worksheets, categories, tabs, languages, delimiter }) => {
+const getSheets = async ({
+  worksheets,
+  categories,
+  tabs,
+  languages,
+  delimiter,
+  concurrency = 1,
+  retryOptions = {},
+}) => {
   process.stdout.write("Fetching Rows from Google Sheets");
-  const sheets = await Promise.map(worksheets, (worksheet) =>
-    getSheetRows({
-      worksheet,
-      categories,
-      languages,
-      delimiter,
-    })
+  const lowerCaseTabsSet = new Set(tabs.map((t) => t.toLowerCase()));
+  const filteredWorksheets = worksheets.filter((ws) => lowerCaseTabsSet.has(ws.title.toLowerCase()));
+  const sheets = await Promise.map(
+    filteredWorksheets,
+    (worksheet) =>
+      getSheetRowsWithRetry(
+        {
+          worksheet,
+          categories,
+          languages,
+          delimiter,
+        },
+        retryOptions
+      ),
+    { concurrency }
   );
   process.stdout.write(` ✓ \n`);
-  return sheets.filter((sheet) => tabs.includes(sheet.title.toLowerCase()));
+  return sheets;
 };
 
 const buildTranslations = async (
@@ -137,6 +171,12 @@ const fetch = async () => {
   } = config;
 
   const requestedSheets = parseRequestedSheetsFromArgv().map((s) => s.toLowerCase());
+  const fetchConcurrency = Number(process.env.FETCH_CONCURRENCY || config.fetchConcurrency || 1);
+  const retryOptions = {
+    retries: Number(process.env.FETCH_RETRIES || config.fetchRetries || 5),
+    baseDelayMs: Number(process.env.FETCH_BACKOFF_BASE_MS || config.fetchBackoffBaseMs || 500),
+    maxDelayMs: Number(process.env.FETCH_BACKOFF_MAX_MS || config.fetchBackoffMaxMs || 8000),
+  };
 
   const doc = await getDocument({ sheetId, credentialsPath });
   await doc.loadInfo();
@@ -151,13 +191,19 @@ const fetch = async () => {
       return;
     }
     process.stdout.write("Fetching Rows from selected sheets");
-    sheets = await Promise.map(selectedWorksheets, (worksheet) =>
-      getSheetRows({
-        worksheet,
-        categories,
-        languages: [...staticLanguages, ...dynamicLanguages],
-        delimiter,
-      })
+    sheets = await Promise.map(
+      selectedWorksheets,
+      (worksheet) =>
+        getSheetRowsWithRetry(
+          {
+            worksheet,
+            categories,
+            languages: [...staticLanguages, ...dynamicLanguages],
+            delimiter,
+          },
+          retryOptions
+        ),
+      { concurrency: fetchConcurrency }
     );
     process.stdout.write(` ✓ \n`);
   } else {
@@ -168,6 +214,8 @@ const fetch = async () => {
       tabs: lowerCaseTabs,
       languages: [...staticLanguages, ...dynamicLanguages],
       delimiter,
+      concurrency: fetchConcurrency,
+      retryOptions,
     });
   }
 
